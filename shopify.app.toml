@@ -1,0 +1,41 @@
+# Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
+
+client_id = "ef679b213141ae7dfa8ccf1d22e972bb"
+name = "auto-discount-code"
+handle = "auto-discount-code"
+application_url = "https://disks-frequent-genesis-salad.trycloudflare.com"
+embedded = true
+
+[build]
+automatically_update_urls_on_dev = true
+dev_store_url = "liquid-theme-dev01.myshopify.com"
+include_config_on_deploy = true
+
+[access_scopes]
+# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
+scopes = "read_customers,read_orders,write_customers,write_discounts,write_orders,write_products"
+
+[auth]
+redirect_urls = [
+  "https://disks-frequent-genesis-salad.trycloudflare.com/auth/callback",
+  "https://disks-frequent-genesis-salad.trycloudflare.com/auth/shopify/callback",
+  "https://disks-frequent-genesis-salad.trycloudflare.com/api/auth/callback"
+]
+
+[webhooks]
+api_version = "2024-10"
+
+  [[webhooks.subscriptions]]
+  topics = [ "app/scopes_update" ]
+  uri = "/webhooks/app/scopes_update"
+
+  [[webhooks.subscriptions]]
+  topics = [ "app/uninstalled" ]
+  uri = "/webhooks/app/uninstalled"
+
+  [[webhooks.subscriptions]]
+  topics = [ "orders/create" ]
+  uri = "https://2ad0-103-244-32-147.ngrok-free.app"
+
+[pos]
+embedded = false
