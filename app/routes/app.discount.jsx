@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useFetcher } from "@remix-run/react";
+import { useFetcher, useLoaderData } from "@remix-run/react";
 import {
   Page,
   Layout,
@@ -9,6 +9,7 @@ import {
   TextField,
   Banner,
   Checkbox,
+  Select,
 } from "@shopify/polaris";
 import { TitleBar, useAppBridge } from "@shopify/app-bridge-react";
 import { PrismaClient } from "@prisma/client";
@@ -17,8 +18,29 @@ import { authenticate } from "../shopify.server";
 const prisma = new PrismaClient();
 
 export const loader = async ({ request }) => {
-  await authenticate.admin(request);
-  return null;
+  const { admin } = await authenticate.admin(request);
+
+  const query = `#graphql
+    query {
+      customers(first: 50) {
+        edges {
+          node {
+            id
+            displayName
+          }
+        }
+      }
+    }
+  `;
+
+  try {
+    const response = await admin.graphql(query);
+    const data = await response.json();
+    return { customers: data.data.customers.edges.map((edge) => edge.node) };
+  } catch (error) {
+    console.error("Failed to fetch customers:", error);
+    return { customers: [] };
+  }
 };
 
 export const action = async ({ request }) => {
@@ -28,8 +50,8 @@ export const action = async ({ request }) => {
   const discountData = {
     discountTitle: formData.get("title"),
     discountCode: formData.get("code"),
-    discountId: "", // We'll populate this after creation
-    customerGid: formData.get("customerId") || "gid://shopify/Customer/7758417002803",
+    discountId: "",
+    customerGid: formData.get("customerId"),
     codeUsage: 0,
     discountPercentage: parseFloat(formData.get("percentage")),
     startingPercentage: parseFloat(formData.get("percentage")),
@@ -75,18 +97,18 @@ export const action = async ({ request }) => {
       endsAt: formData.get("endDate"),
       customerSelection: {
         customers: {
-          add: [formData.get("customerId")]
-        }
+          add: [formData.get("customerId")],
+        },
       },
       customerGets: {
         value: {
-          percentage
+          percentage,
         },
         items: {
-          all: true
-        }
+          all: true,
+        },
       },
-      appliesOncePerCustomer: false
+      appliesOncePerCustomer: false,
     };
 
     const response = await admin.graphql(mutation, {
@@ -100,7 +122,8 @@ export const action = async ({ request }) => {
       return { error: responseJson.data.discountCodeBasicCreate.userErrors[0].message };
     }
 
-    const codes = responseJson.data?.discountCodeBasicCreate?.codeDiscountNode?.codeDiscount?.codes?.nodes || [];
+    const codes =
+      responseJson.data?.discountCodeBasicCreate?.codeDiscountNode?.codeDiscount?.codes?.nodes || [];
     const discountId = responseJson.data?.discountCodeBasicCreate?.codeDiscountNode?.id;
 
     // Insert into MySQL database if the discount code was successfully generated
@@ -132,9 +155,11 @@ export const action = async ({ request }) => {
 export default function Index() {
   const fetcher = useFetcher();
   const shopify = useAppBridge();
+  const { customers } = useLoaderData();
+
   const [title, setTitle] = useState("");
   const [code, setCode] = useState("");
-  const [customerId, setCustomerId] = useState("gid://shopify/Customer/7758417002803");
+  const [customerId, setCustomerId] = useState("");
   const [percentage, setPercentage] = useState("10");
   const [incrementBy, setIncrementBy] = useState("5");
   const [endingPercentage, setEndingPercentage] = useState("20");
@@ -166,7 +191,7 @@ export default function Index() {
   }, [fetcher.data, shopify]);
 
   const handleSubmit = () => {
-    if (!title || !code || !percentage || !incrementBy || !endingPercentage) {
+    if (!title || !code || !percentage || !incrementBy || !endingPercentage || !customerId) {
       setError("Required fields missing");
       return;
     }
@@ -191,17 +216,19 @@ export default function Index() {
               )}
 
               <BlockStack gap="300">
+                <Select
+                  label="Customer"
+                  options={customers.map((customer) => ({
+                    label: customer.displayName,
+                    value: customer.id,
+                  }))}
+                  value={customerId}
+                  onChange={setCustomerId}
+                />
                 <TextField
                   label="Title"
                   value={title}
                   onChange={setTitle}
-                  autoComplete="off"
-                />
-
-                <TextField
-                  label="Customer ID"
-                  value={customerId}
-                  onChange={setCustomerId}
                   autoComplete="off"
                 />
 

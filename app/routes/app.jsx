@@ -23,7 +23,7 @@ export default function App() {
           Home
         </Link>
         <Link to="/app/discount">Generate Discount Code</Link>
-        {/* <Link to="/app/test2">Test 2</Link> */}
+        <Link to="/app/test2">Test 2</Link>
         <Link to="/app/updatediscount">Update Discount</Link>
       </NavMenu>
       <Outlet />

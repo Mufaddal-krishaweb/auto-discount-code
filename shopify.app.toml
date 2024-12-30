@@ -3,7 +3,7 @@
 client_id = "ef679b213141ae7dfa8ccf1d22e972bb"
 name = "auto-discount-code"
 handle = "auto-discount-code"
-application_url = "https://william-clearing-class-engage.trycloudflare.com"
+application_url = "https://rugby-losses-am-loose.trycloudflare.com"
 embedded = true
 
 [build]
@@ -17,9 +17,9 @@ scopes = "read_customers,read_orders,write_customers,write_discounts,write_order
 
 [auth]
 redirect_urls = [
-  "https://william-clearing-class-engage.trycloudflare.com/auth/callback",
-  "https://william-clearing-class-engage.trycloudflare.com/auth/shopify/callback",
-  "https://william-clearing-class-engage.trycloudflare.com/api/auth/callback"
+  "https://rugby-losses-am-loose.trycloudflare.com/auth/callback",
+  "https://rugby-losses-am-loose.trycloudflare.com/auth/shopify/callback",
+  "https://rugby-losses-am-loose.trycloudflare.com/api/auth/callback"
 ]
 
 [webhooks]
