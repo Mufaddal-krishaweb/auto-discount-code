@@ -17,15 +17,6 @@ const shopify = shopifyApp({
   authPathPrefix: "/auth",
   sessionStorage: new PrismaSessionStorage(prisma),
   distribution: AppDistribution.AppStore,
-  webhooks: {
-    "orders/create": {
-      deliveryMethod: DeliveryMethod.Http,
-      callbackUrl: "https://1405-103-244-32-147.ngrok-free.app/webhook/orders/create",
-      callback: async (topic, shop, body, webhookId) => {
-        console.log(`Received order webhook from ${shop}`);
-      },
-    },
-  },
   future: {
     unstable_newEmbeddedAuthStrategy: true,
     removeRest: true,
@@ -34,6 +25,26 @@ const shopify = shopifyApp({
     ? { customShopDomains: [process.env.SHOP_CUSTOM_DOMAIN] }
     : {}),
 });
+
+export async function registerOrderWebhooks(session) {
+  const webhookRegistration = await shopify.registerWebhooks({
+    shop: session.shop,
+    accessToken: session.accessToken,
+    webhooks: [
+      {
+        topic: "ORDERS_CREATE",
+        address: `https://54af-103-244-32-140.ngrok-free.app/webhooks/orders-create`,
+        deliveryMethod: DeliveryMethod.Http,
+      },
+    ],
+  });
+
+  if (!webhookRegistration[0].success) {
+    console.error(
+      `Failed to register ORDERS_CREATE webhook: ${webhookRegistration[0].result}`
+    );
+  }
+}
 
 export default shopify;
 export const apiVersion = ApiVersion.October24;

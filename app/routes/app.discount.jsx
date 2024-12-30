@@ -28,10 +28,11 @@ export const action = async ({ request }) => {
   const discountData = {
     discountTitle: formData.get("title"),
     discountCode: formData.get("code"),
+    discountId: "", // We'll populate this after creation
     customerGid: formData.get("customerId") || "gid://shopify/Customer/7758417002803",
-    codeUsage: 0, // Initially the usage is 0
+    codeUsage: 0,
     discountPercentage: parseFloat(formData.get("percentage")),
-    startingPercentage: parseFloat(formData.get("percentage")), // Set both discount and starting percentage
+    startingPercentage: parseFloat(formData.get("percentage")),
     incrementBy: parseFloat(formData.get("incrementBy")),
     endingPercentage: parseFloat(formData.get("endingPercentage")),
     endingDate: new Date(formData.get("endDate")),
@@ -41,6 +42,7 @@ export const action = async ({ request }) => {
       mutation CreateBasicDiscountCode($input: DiscountCodeBasicInput!) {
         discountCodeBasicCreate(basicCodeDiscount: $input) {
           codeDiscountNode {
+            id
             codeDiscount {
               ... on DiscountCodeBasic {
                 title
@@ -73,7 +75,7 @@ export const action = async ({ request }) => {
       endsAt: formData.get("endDate"),
       customerSelection: {
         customers: {
-          add: [formData.get("customerId") || "gid://shopify/Customer/7758417002803"]
+          add: [formData.get("customerId")]
         }
       },
       customerGets: {
@@ -92,17 +94,20 @@ export const action = async ({ request }) => {
     });
 
     const responseJson = await response.json();
-    console.log("Shopify GraphQL Response:", responseJson); // Log the full response
+    console.log("Shopify GraphQL Response:", responseJson);
 
     if (responseJson.data?.discountCodeBasicCreate?.userErrors?.length > 0) {
       return { error: responseJson.data.discountCodeBasicCreate.userErrors[0].message };
     }
 
     const codes = responseJson.data?.discountCodeBasicCreate?.codeDiscountNode?.codeDiscount?.codes?.nodes || [];
+    const discountId = responseJson.data?.discountCodeBasicCreate?.codeDiscountNode?.id;
 
     // Insert into MySQL database if the discount code was successfully generated
-    if (codes.length > 0) {
-      discountData.discountCode = codes[0].code; // Update with the generated discount code
+    if (codes.length > 0 && discountId) {
+      discountData.discountCode = codes[0].code;
+      discountData.discountId = discountId;
+
       await prisma.discountCode.create({
         data: discountData,
       });
@@ -112,6 +117,7 @@ export const action = async ({ request }) => {
       success: true,
       discount: {
         ...responseJson.data.discountCodeBasicCreate.codeDiscountNode.codeDiscount,
+        id: discountId,
         codes,
       },
     };
@@ -129,9 +135,9 @@ export default function Index() {
   const [title, setTitle] = useState("");
   const [code, setCode] = useState("");
   const [customerId, setCustomerId] = useState("gid://shopify/Customer/7758417002803");
-  const [percentage, setPercentage] = useState("");
-  const [incrementBy, setIncrementBy] = useState("");
-  const [endingPercentage, setEndingPercentage] = useState("");
+  const [percentage, setPercentage] = useState("10");
+  const [incrementBy, setIncrementBy] = useState("5");
+  const [endingPercentage, setEndingPercentage] = useState("20");
   const [startDate, setStartDate] = useState(new Date().toISOString());
   const [endDate, setEndDate] = useState("2027-12-31T23:59:59Z");
   const [autoGenerate, setAutoGenerate] = useState(true);
@@ -261,6 +267,7 @@ export default function Index() {
               {fetcher.data?.success && (
                 <BlockStack gap="200">
                   <p>Discount Created Successfully!</p>
+                  <p>Discount Title: {fetcher.data.discount.title}</p>
                   <p>Code: {fetcher.data.discount.codes?.nodes && fetcher.data.discount.codes.nodes.length > 0
                     ? fetcher.data.discount.codes.nodes[0].code
                     : "N/A"}</p>

@@ -24,6 +24,7 @@ CREATE TABLE `discount_codes` (
     `id` VARCHAR(191) NOT NULL,
     `discountTitle` VARCHAR(191) NOT NULL,
     `discountCode` VARCHAR(191) NOT NULL,
+    `discountId` VARCHAR(191) NOT NULL,
     `customerGid` VARCHAR(191) NULL,
     `codeUsage` INTEGER NOT NULL DEFAULT 0,
     `discountPercentage` DOUBLE NOT NULL,
